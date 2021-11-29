@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,15 +11,22 @@ public class GameManager : MonoBehaviour
     public KusiController Kusi;
     public int[] kusis;
     public int limit;
+    public Animator FadeAnimator;
+    public AudioSource Source, DropSource;
+    public AudioClip[] Clips;
+    public GetRankingScript RankingScript;
 
     public GameObject[] Counts;
-
+    public int[] price;
+    public GameObject Message, ResultUI, End;
+    public Text Timetext, totaltext;
+    public int total;
     // Start is called before the first frame update
     void Start()
     {
-        //StartCoroutine(SozaiDrop());
-        //StartCoroutine(TimeCount());
-        StartCoroutine(Result());
+
+        //StartCoroutine(Result());
+        StartCoroutine(Starting());
     }
 
     // Update is called once per frame
@@ -30,9 +38,11 @@ public class GameManager : MonoBehaviour
     IEnumerator TimeCount()
     {
   
-        while (limit > 0)
+        while (limit >= 0)
         {
             Debug.Log(limit);
+            Timetext.color = new Color(255f, 0, 0);
+            Timetext.text = limit.ToString();
             yield return new WaitForSeconds(1);
             limit--;
         }
@@ -40,9 +50,10 @@ public class GameManager : MonoBehaviour
         Debug.Log("終了！");
 
         StartCoroutine(SozaiDrop());
-
+        End.SetActive(true);
         yield return new WaitForSeconds(5);
-        Result();
+        End.SetActive(false);
+        StartCoroutine(Result());
     }
 
     IEnumerator SozaiDrop()
@@ -50,6 +61,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             Instantiate(Droobj, new Vector3(Random.Range(-2, 3), droppointy), Quaternion.identity);
+            DropSource.Play();
             yield return new WaitForSeconds(1);
         }
     }
@@ -90,20 +102,41 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    IEnumerator Starting()
+    {
+        yield return null;
+        yield return new WaitUntil(() => FadeAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+        Debug.Log("待機が終わりました");
+        yield return new WaitForSeconds(5);
+        Message.SetActive(false);
+        Source.PlayOneShot(Clips[0]);
+        yield return new WaitForSeconds(1);
+        StartCoroutine(SozaiDrop());
+        StartCoroutine(TimeCount());
+    }
+
     IEnumerator Result()
     {
         Debug.Log("リザルト");
 
         yield return new WaitForSeconds(3);
 
-        for(int i = 0; i< kusis.Length;i++)
+        ResultUI.SetActive(true);
+
+        for (int i = 0; i< kusis.Length;i++)
         {
             Text text = Counts[i].GetComponent<Text>();
             text.text = kusis[i].ToString();
-
             Counts[i].SetActive(true);
+            total += price[i] * kusis[i];
+            totaltext.text = total.ToString();
             yield return new WaitForSeconds(2);
-
         }
+
+        yield return new WaitForSeconds(3);
+        RankingScript.Push(total);
+
     }
+
+
 }
